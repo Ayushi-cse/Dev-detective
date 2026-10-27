@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev-Detective | GitHub API Hunter</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Navigation & Branding -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">🔍</span>
+        <h1 class="logo-text">devfinder<span class="logo-badge">PRODESK SPRINT 3</span></h1>
+      </div>
+      
+      <div class="header-actions">
+        <!-- Optional GitHub Token for 403 Rate Limit Bypass -->
+        <button id="tokenToggleBtn" class="btn-icon" title="Configure GitHub API Token (Optional)" aria-label="API Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+
+        <!-- Dark / Light Theme Toggle -->
+        <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle theme">
+          <span class="theme-text" id="themeText">LIGHT</span>
+          <span class="theme-icon" id="themeIcon">☀️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Token Settings Drawer (Collapsible) -->
+    <section id="tokenModal" class="token-modal hidden">
+      <div class="token-modal-content">
+        <h3>GitHub Personal Access Token (PAT)</h3>
+        <p class="token-desc">
+          GitHub restricts unauthenticated requests to <strong>60 per hour</strong>. Adding a token grants <strong>5,000 requests/hour</strong>. This is stored only in your local browser storage.
+        </p>
+        <div class="token-input-group">
+          <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+          <button id="saveTokenBtn" class="btn btn-secondary">Save Token</button>
+          <button id="clearTokenBtn" class="btn btn-danger">Clear</button>
+        </div>
+        <p id="tokenStatusText" class="token-status"></p>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs: Solo Mode vs Battle Mode -->
+    <nav class="mode-tabs">
+      <button id="tabSolo" class="mode-tab active" data-mode="solo">
+        <span class="tab-icon">👤</span> Solo Detective (Phase 1 & 2)
+      </button>
+      <button id="tabBattle" class="mode-tab" data-mode="battle">
+        <span class="tab-icon">⚔️</span> Battle Mode (Phase 3)
+      </button>
+    </nav>
+
+    <!-- ============================================== -->
+    <!-- VIEW 1: SOLO DETECTIVE (Phase 1 & Phase 2)     -->
+    <!-- ============================================== -->
+    <main id="soloView" class="view-section">
+      
+      <!-- Search Bar -->
+      <form id="searchForm" class="search-bar" role="search">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search GitHub username..." 
+            autocomplete="off" 
+            spellcheck="false" 
+            required 
+          />
+        </div>
+        <span id="searchErrorBadge" class="search-error-badge hidden">No results</span>
+        <button type="submit" id="searchSubmitBtn" class="btn btn-primary">Search</button>
+      </form>
+
+      <!-- Global Notification / Error Alert Box -->
+      <div id="soloAlert" class="alert-box hidden" role="alert">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-message" id="soloAlertText">User Not Found</div>
+        <button class="alert-close" id="soloAlertClose">&times;</button>
+      </div>
+
+      <!-- Loading State Indicator -->
+      <div id="soloLoading" class="loading-container hidden">
+        <div class="spinner"></div>
+        <p class="loading-text">Fetching data from GitHub REST API...</p>
+      </div>
+
+      <!-- Profile Card Container (Phase 1 MVP) -->
+      <article id="profileCard" class="profile-card">
+        <div class="profile-header">
+          <img id="userAvatar" class="profile-avatar" src="https://avatars.githubusercontent.com/u/583231?v=4" alt="User avatar" />
+          
+          <div class="profile-title-block">
+            <div class="profile-name-row">
+              <h2 id="userName" class="profile-name">The Octocat</h2>
+              <span id="userJoinDate" class="profile-joined">Joined 25 Jan 2011</span>
+            </div>
+            <a id="userHandle" class="profile-handle" href="https://github.com/octocat" target="_blank" rel="noopener noreferrer">@octocat</a>
+          </div>
+        </div>
+
+        <p id="userBio" class="profile-bio">This profile has no bio</p>
+
+        <!-- Stats Bar -->
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-label">Repos</span>
+            <strong id="statRepos" class="stat-value">8</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Followers</span>
+            <strong id="statFollowers" class="stat-value">9934</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Following</span>
+            <strong id="statFollowing" class="stat-value">9</strong>
+          </div>
+        </div>
+
+        <!-- Links Grid -->
+        <div class="profile-links-grid">
+          <div class="link-item" id="linkLocationWrapper">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span id="linkLocation" class="link-text">San Francisco</span>
+          </div>
+
+          <div class="link-item" id="linkWebsiteWrapper">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            <a id="linkWebsite" class="link-text link-anchor" href="https://github.blog" target="_blank" rel="noopener noreferrer">https://github.blog</a>
+          </div>
+
+          <div class="link-item" id="linkTwitterWrapper">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+            </svg>
+            <a id="linkTwitter" class="link-text link-anchor" href="#" target="_blank" rel="noopener noreferrer">Not Available</a>
+          </div>
+
+          <div class="link-item" id="linkCompanyWrapper">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            <span id="linkCompany" class="link-text">@github</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Phase 2: Top 5 Latest Repositories Section -->
+      <section id="reposSection" class="repos-section">
+        <div class="section-title-row">
+          <h3 class="section-title">
+            <span class="section-title-icon">📦</span> Top 5 Latest Repositories
+          </h3>
+          <span class="section-subtitle">Chained from <code>repos_url</code></span>
+        </div>
+
+        <div id="reposList" class="repos-grid">
+          <!-- Dynamic repository cards render here -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ============================================== -->
+    <!-- VIEW 2: BATTLE MODE (Phase 3 Advanced Logic)  -->
+    <!-- ============================================== -->
+    <main id="battleView" class="view-section hidden">
+      
+      <div class="battle-intro">
+        <h2>Developer Face-Off Arena</h2>
+        <p>Query two GitHub users simultaneously via <code>Promise.all()</code>. Repositories are fetched and aggregated with <code>Array.reduce()</code> to compute total stars!</p>
+      </div>
+
+      <!-- Dual Input Form -->
+      <form id="battleForm" class="battle-form">
+        <div class="battle-input-group">
+          <label for="battleUser1Input" class="battle-label">Contender 1</label>
+          <div class="search-input-wrapper">
+            <input 
+              type="text" 
+              id="battleUser1Input" 
+              placeholder="e.g. torvalds" 
+              autocomplete="off" 
+              spellcheck="false" 
+              required 
+            />
+          </div>
+        </div>
+
+        <div class="battle-vs-badge">VS</div>
+
+        <div class="battle-input-group">
+          <label for="battleUser2Input" class="battle-label">Contender 2</label>
+          <div class="search-input-wrapper">
+            <input 
+              type="text" 
+              id="battleUser2Input" 
+              placeholder="e.g. gaearon" 
+              autocomplete="off" 
+              spellcheck="false" 
+              required 
+            />
+          </div>
+        </div>
+
+        <button type="submit" id="battleSubmitBtn" class="btn btn-battle">
+          ⚔️ Launch Battle
+        </button>
+      </form>
+
+      <!-- Battle Loading Indicator -->
+      <div id="battleLoading" class="loading-container hidden">
+        <div class="spinner"></div>
+        <p class="loading-text">Executing Promise.all() for both contenders...</p>
+      </div>
+
+      <!-- Battle Alert / Error -->
+      <div id="battleAlert" class="alert-box hidden" role="alert">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-message" id="battleAlertText"></div>
+        <button class="alert-close" id="battleAlertClose">&times;</button>
+      </div>
+
+      <!-- Battle Comparison Arena -->
+      <section id="battleArena" class="battle-arena hidden">
+        <div class="battle-cards-container">
+          <!-- Contender 1 Card -->
+          <div id="battleCard1" class="battle-card">
+            <!-- Dynamic Contender 1 content -->
+          </div>
+
+          <!-- Contender 2 Card -->
+          <div id="battleCard2" class="battle-card">
+            <!-- Dynamic Contender 2 content -->
+          </div>
+        </div>
+
+        <!-- Comparative Summary Banner -->
+        <div id="battleSummaryBanner" class="battle-summary-banner">
+          <!-- Summary stats injected dynamically -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>
+        Engineered for <strong>Prodesk IT</strong> • Sprint 3: The API Hunter • Foundation Phase 2
+      </p>
+      <p class="footer-meta">
+        Powered by the official <a href="https://docs.github.com/en/rest" target="_blank" rel="noopener noreferrer">GitHub REST API</a> (Async / Await Architecture)
+      </p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
